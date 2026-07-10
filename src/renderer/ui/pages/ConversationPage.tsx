@@ -6,7 +6,7 @@ import {
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
 import type { AppendMessage, ThreadMessageLike } from '@assistant-ui/react';
-import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
+import ReactMarkdown from 'react-markdown';
 import React, { useMemo, useState } from 'react';
 import type {
   ChatMessage,
@@ -241,19 +241,7 @@ export default function ConversationPage({
     [session, onUpdate, onOpenPreview, api],
   );
 
-  // eslint-disable-next-line react/no-unstable-nested-components
-  const AssistantMarkdownText = useMemo(() => {
-    // eslint-disable-next-line func-names
-    return function (props: any) {
-      return (
-        // eslint-disable-next-line react/jsx-props-no-spreading
-        <MarkdownTextPrimitive
-          {...props}
-          components={customMarkdownComponents}
-        />
-      );
-    };
-  }, [customMarkdownComponents]);
+
 
   return (
     <main className="conversation">
@@ -340,15 +328,23 @@ export default function ConversationPage({
                     )}
 
                     {/* Show content (either live streaming or original saved content) */}
-                    {message.role === 'user' ||
-                    originalMsg?.content ||
-                    !originalMsg ? (
-                      <div className="message-content">
-                        <MessagePrimitive.Parts
-                          components={{ Text: AssistantMarkdownText }}
-                        />
-                      </div>
-                    ) : null}
+                    {(() => {
+                      const textVal = originalMsg
+                        ? originalMsg.content
+                        : message.id === 'stream-current'
+                        ? streamedDraft
+                        : (message.content as any[])
+                            ?.filter((p: any) => p.type === 'text')
+                            .map((p: any) => p.text)
+                            .join('') ?? '';
+                      return textVal ? (
+                        <div className="message-content">
+                          <ReactMarkdown components={customMarkdownComponents as any}>
+                            {textVal}
+                          </ReactMarkdown>
+                        </div>
+                      ) : null;
+                    })()}
 
                     {/* Topic choices attached to the last topics message */}
                     {message.metadata.custom.originalId ===

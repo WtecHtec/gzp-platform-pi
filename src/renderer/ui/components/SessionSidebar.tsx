@@ -58,9 +58,9 @@ export default function SessionSidebar({
       </div>
       <button className="new-button" onClick={onCreate} type="button">
         <Icon name="compose" size={16} />
-        新建文章
+        开始创作
       </button>
-      <div className="sidebar-label">最近文章</div>
+      <div className="sidebar-label">最近会话</div>
       <nav className="session-list">
         {items.map((vm) => (
           <div className="session-row-wrap" key={vm.id}>

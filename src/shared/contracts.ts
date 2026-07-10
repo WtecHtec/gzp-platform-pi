@@ -239,6 +239,9 @@ export interface DesktopApi {
     checkSkillUpdate(skillId: string): Promise<CheckSkillUpdateResult>;
     updateSkill(skillId: string): Promise<UpdateSkillResult>;
     openSkillDirectory(skillId: string): Promise<void>;
+    getSearch(): Promise<SearchSettings>;
+    saveSearch(input: SaveSearchSettingsInput): Promise<SearchSettings>;
+    testSearch(provider: 'tavily' | 'brave', apiKey: string): Promise<ConnectionTestResult>;
   };
   agent: {
     run(input: AgentRunInput): Promise<AgentRunResult>;
@@ -257,3 +260,14 @@ export interface DesktopApi {
   };
   openExternalUrl(url: string): Promise<void>;
 }
+
+export interface SearchSettings {
+  tavilyApiKeyConfigured: boolean;
+  braveApiKeyConfigured: boolean;
+}
+
+export interface SaveSearchSettingsInput {
+  tavilyApiKey?: string;
+  braveApiKey?: string;
+}
+

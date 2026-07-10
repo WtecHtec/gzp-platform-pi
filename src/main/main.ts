@@ -24,8 +24,11 @@ import {
   SaveModelSettingsInput,
   SaveSessionInput,
   SaveWorkspaceSettingsInput,
+  SaveSearchSettingsInput,
+  SearchSettings,
 } from '../shared/contracts';
 import ModelSettingsStore from './model-settings-store';
+import SearchSettingsStore from './search-settings-store';
 import WorkspaceSettingsStore from './workspace-settings-store';
 import PiAgentRuntime from './agent-runtime';
 import checkWritingIntent from './intent-gate';
@@ -59,6 +62,7 @@ let mainWindow: BrowserWindow | null = null;
 let sessionStore: SessionStore;
 let modelSettingsStore: ModelSettingsStore;
 let workspaceSettingsStore: WorkspaceSettingsStore;
+let searchSettingsStore: SearchSettingsStore;
 const activeRuns = new Map<string, AbortController>();
 
 // Dynamic workspace root resolver — reads the latest configured directory each time a tool runs.
@@ -72,7 +76,7 @@ const piAgentRuntime = new PiAgentRuntime(
   (sessionId) =>
     compactToolResults(
       [
-        ...createBasicTools(workspaceRootFn, logger, skillManager),
+        ...createBasicTools(workspaceRootFn, logger, skillManager, searchSettingsStore),
         createUpdateProfileTool(sessionId, profileStore),
       ],
       new ToolOutputCompactor(
@@ -94,7 +98,79 @@ function registerIpcHandlers(
   store: SessionStore,
   settings: ModelSettingsStore,
   workspaceSettings: WorkspaceSettingsStore,
+  searchSettings: SearchSettingsStore,
 ) {
+  ipcMain.handle('settings:search:get', () => searchSettings.get());
+  ipcMain.handle(
+    'settings:search:save',
+    (_event, input: SaveSearchSettingsInput) => searchSettings.save(input),
+  );
+  ipcMain.handle(
+    'settings:search:test',
+    async (_event, provider: 'tavily' | 'brave', apiKey: string) => {
+      const startedAt = Date.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        let response: Response;
+        if (provider === 'tavily') {
+          response = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_key: apiKey,
+              query: 'ping',
+              max_results: 1,
+            }),
+            signal: controller.signal,
+          });
+        } else {
+          response = await fetch(
+            'https://api.search.brave.com/res/v1/web/search?q=ping&count=1',
+            {
+              method: 'GET',
+              headers: {
+                Accept: 'application/json',
+                'X-Subscription-Token': apiKey,
+              },
+              signal: controller.signal,
+            },
+          );
+        }
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const body = await response.text();
+          let errorDetail = '';
+          try {
+            const parsed = JSON.parse(body);
+            errorDetail = parsed.error?.message || parsed.message || body;
+          } catch {
+            errorDetail = body;
+          }
+          throw new Error(`HTTP ${response.status}: ${errorDetail}`);
+        }
+
+        return {
+          ok: true,
+          message: '连接成功',
+          latencyMs: Date.now() - startedAt,
+        };
+      } catch (error) {
+        let msg = '连接失败';
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            msg = '连接超时 (10秒)';
+          } else {
+            msg = error.message;
+          }
+        }
+        return { ok: false, message: msg };
+      }
+    },
+  );
+
   ipcMain.handle('session:list', () => store.list());
   ipcMain.handle('session:create', (_event, input) => store.create(input));
   ipcMain.handle('session:load', (_event, sessionId: string) =>
@@ -490,11 +566,13 @@ app
     workspaceSettingsStore = new WorkspaceSettingsStore(
       app.getPath('userData'),
     );
+    searchSettingsStore = new SearchSettingsStore(app.getPath('userData'));
     await sessionStore.initialize();
     registerIpcHandlers(
       sessionStore,
       modelSettingsStore,
       workspaceSettingsStore,
+      searchSettingsStore,
     );
     createWindow();
     app.on('activate', () => {

@@ -9,6 +9,7 @@ import {
   SaveModelSettingsInput,
   SaveSessionInput,
   SaveWorkspaceSettingsInput,
+  SaveSearchSettingsInput,
 } from '../shared/contracts';
 
 const desktopApi: DesktopApi = {
@@ -52,6 +53,11 @@ const desktopApi: DesktopApi = {
       ipcRenderer.invoke('settings:skills:update', skillId),
     openSkillDirectory: (skillId: string) =>
       ipcRenderer.invoke('settings:skills:open-dir', skillId),
+    getSearch: () => ipcRenderer.invoke('settings:search:get'),
+    saveSearch: (input: SaveSearchSettingsInput) =>
+      ipcRenderer.invoke('settings:search:save', input),
+    testSearch: (provider: 'tavily' | 'brave', apiKey: string) =>
+      ipcRenderer.invoke('settings:search:test', provider, apiKey),
   },
   agent: {
     run: (input) => ipcRenderer.invoke('agent:run', input),

@@ -6,6 +6,8 @@ import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from 'typebox';
 import ApplicationLogger from '../domain/observability/application-logger';
 import SkillManager from './skills/skill-manager';
+import SearchSettingsStore from './search-settings-store';
+import { performTavilySearch, performBraveSearch } from './search-helper';
 
 const executeFile = promisify(execFile);
 
@@ -89,6 +91,7 @@ export default function createBasicTools(
   workspaceRootFn: () => Promise<string>,
   logger: ApplicationLogger,
   skillManager: SkillManager,
+  searchSettingsStore: SearchSettingsStore,
 ): AgentTool[] {
   const bashTool: AgentTool = {
     name: 'bash',
@@ -358,6 +361,87 @@ export default function createBasicTools(
     },
   };
 
+  const webSearchTool: AgentTool = {
+    name: 'web_search',
+    label: '网页搜索',
+    description: '搜索互联网获取最新的时效性信息、时事新闻或补充知识。',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '要搜索的关键词或句子',
+        },
+        max_results: {
+          type: 'integer',
+          description: '可选，最多返回的结果数，默认 5 条',
+        },
+      },
+      required: ['query'],
+    } as any,
+    execute: async (_toolCallId, parameters) => {
+      const input = parameters as { query: string; max_results?: number };
+      const query = input.query.trim();
+      const limit = Math.min(Math.max(input.max_results || 5, 1), 10);
+
+      const keys = await searchSettingsStore.resolve();
+      const errors: string[] = [];
+
+      // 1. Try Tavily first
+      if (keys.tavilyApiKey) {
+        try {
+          logger.info('web_search.tavily.started', { query, limit });
+          const formattedResults = await performTavilySearch(keys.tavilyApiKey, query, limit);
+          logger.info('web_search.tavily.success', { count: formattedResults.length });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(formattedResults, null, 2),
+              },
+            ],
+            details: { query, provider: 'tavily', count: formattedResults.length },
+          };
+        } catch (err: any) {
+          errors.push(`Tavily 请求异常/失败: ${err.message || err}`);
+        }
+      } else {
+        errors.push('Tavily API Key 未配置');
+      }
+
+      // 2. Try Brave Search backup
+      if (keys.braveApiKey) {
+        try {
+          logger.info('web_search.brave.started', { query, limit });
+          const formattedResults = await performBraveSearch(keys.braveApiKey, query, limit);
+          logger.info('web_search.brave.success', { count: formattedResults.length });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(formattedResults, null, 2),
+              },
+            ],
+            details: { query, provider: 'brave', count: formattedResults.length },
+          };
+        } catch (err: any) {
+          errors.push(`Brave Search 请求异常/失败: ${err.message || err}`);
+        }
+      } else {
+        errors.push('Brave Search API Key 未配置');
+      }
+
+      // 3. Both failed
+      const errorMsg = `网络搜索失败或未配置服务。\n${errors.join('\n')}\n请在"设置 -> 搜索服务"中配置有效的 API 密钥。`;
+      logger.error('web_search.failed', { query, errors });
+      return {
+        content: [{ type: 'text', text: errorMsg }],
+        details: { query, errors },
+        isError: true,
+      };
+    },
+  };
+
   return [
     bashTool,
     readTool,
@@ -365,5 +449,6 @@ export default function createBasicTools(
     loadSkillTool,
     runSkillScriptTool,
     installSkillFromUrlTool,
+    webSearchTool,
   ];
 }

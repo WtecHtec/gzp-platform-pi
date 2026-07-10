@@ -5,9 +5,11 @@ import type {
   SaveModelSettingsInput,
   WorkspaceSettings,
   SkillDescriptor,
+  SearchSettings,
+  SaveSearchSettingsInput,
 } from '../../../shared/contracts';
 
-type Tab = 'model' | 'storage' | 'skills';
+type Tab = 'model' | 'storage' | 'skills' | 'search';
 
 // ---------------------------------------------------------------------------
 // Tab 1 — Model configuration
@@ -522,8 +524,175 @@ function SkillsTab({ api }: { api: DesktopApi }) {
 }
 
 // ---------------------------------------------------------------------------
+// Tab 4 — Search configuration (Tavily + Brave)
+// ---------------------------------------------------------------------------
+
+function SearchTab({
+  api,
+  onClose,
+}: {
+  api: DesktopApi;
+  onClose: () => void;
+}) {
+  const [settings, setSettings] = useState<SearchSettings | null>(null);
+  const [form, setForm] = useState<SaveSearchSettingsInput>({
+    tavilyApiKey: '',
+    braveApiKey: '',
+  });
+  const [tavilyFeedback, setTavilyFeedback] = useState('');
+  const [braveFeedback, setBraveFeedback] = useState('');
+  const [saveFeedback, setSaveFeedback] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+
+  useEffect(() => {
+    api.settings.getSearch().then(setSettings).catch(console.error);
+  }, [api]);
+
+  const testProvider = async (provider: 'tavily' | 'brave') => {
+    const key = provider === 'tavily' ? form.tavilyApiKey : form.braveApiKey;
+    const setFeedback = provider === 'tavily' ? setTavilyFeedback : setBraveFeedback;
+
+    if (!key?.trim()) {
+      setFeedback('请输入 API Key 展开测试');
+      return;
+    }
+
+    setIsBusy(true);
+    setFeedback('正在测试连接…');
+    try {
+      const result = await api.settings.testSearch(provider, key.trim());
+      setFeedback(
+        result.ok
+          ? `${result.message}${result.latencyMs ? ` · ${result.latencyMs}ms` : ''}`
+          : `测试失败：${result.message}`,
+      );
+    } catch (err: any) {
+      setFeedback(`测试发生错误：${err.message || err}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsBusy(true);
+    setSaveFeedback('');
+    try {
+      const payload: SaveSearchSettingsInput = {};
+      if (form.tavilyApiKey !== undefined && form.tavilyApiKey.trim() !== '') {
+        payload.tavilyApiKey = form.tavilyApiKey;
+      }
+      if (form.braveApiKey !== undefined && form.braveApiKey.trim() !== '') {
+        payload.braveApiKey = form.braveApiKey;
+      }
+
+      await api.settings.saveSearch(payload);
+      onClose();
+    } catch (error) {
+      setSaveFeedback(
+        `保存失败：${error instanceof Error ? error.message : '未知错误'}`,
+      );
+      setIsBusy(false);
+    }
+  };
+
+  if (!settings) {
+    return <div className="settings-tab-body">正在载入配置...</div>;
+  }
+
+  return (
+    <form aria-label="搜索服务" className="settings-tab-form" onSubmit={save}>
+      <div className="settings-tab-body" style={{ maxHeight: 'calc(85vh - 160px)', overflowY: 'auto' }}>
+        {/* Tavily API key */}
+        <label htmlFor="search-tavily-key">
+          Tavily API Key (主搜索源)
+          <input
+            autoComplete="off"
+            id="search-tavily-key"
+            onChange={(e) =>
+              setForm((cur) => ({ ...cur, tavilyApiKey: e.target.value }))
+            }
+            placeholder={
+              settings.tavilyApiKeyConfigured
+                ? '已配置，留空则保持不变'
+                : '输入 Tavily API Key'
+            }
+            type="password"
+            value={form.tavilyApiKey || ''}
+          />
+        </label>
+        <div className="settings-status" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 'auto', marginBottom: '16px' }}>
+          <span className={settings.tavilyApiKeyConfigured ? 'configured' : undefined}>
+            {settings.tavilyApiKeyConfigured ? '密钥已配置' : '密钥未配置'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {tavilyFeedback ? <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>{tavilyFeedback}</span> : null}
+            <button
+              type="button"
+              disabled={isBusy || !form.tavilyApiKey?.trim()}
+              onClick={() => testProvider('tavily')}
+              style={{ padding: '3px 8px', fontSize: '11px', height: '24px' }}
+            >
+              测试
+            </button>
+          </div>
+        </div>
+
+        {/* Brave API key */}
+        <label htmlFor="search-brave-key">
+          Brave Search API Key (备用搜索源)
+          <input
+            autoComplete="off"
+            id="search-brave-key"
+            onChange={(e) =>
+              setForm((cur) => ({ ...cur, braveApiKey: e.target.value }))
+            }
+            placeholder={
+              settings.braveApiKeyConfigured
+                ? '已配置，留空则保持不变'
+                : '输入 Brave Search API Key'
+            }
+            type="password"
+            value={form.braveApiKey || ''}
+          />
+        </label>
+        <div className="settings-status" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 'auto', marginBottom: '16px' }}>
+          <span className={settings.braveApiKeyConfigured ? 'configured' : undefined}>
+            {settings.braveApiKeyConfigured ? '密钥已配置' : '密钥未配置'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {braveFeedback ? <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>{braveFeedback}</span> : null}
+            <button
+              type="button"
+              disabled={isBusy || !form.braveApiKey?.trim()}
+              onClick={() => testProvider('brave')}
+              style={{ padding: '3px 8px', fontSize: '11px', height: '24px' }}
+            >
+              测试
+            </button>
+          </div>
+        </div>
+
+        {saveFeedback ? (
+          <div className="settings-status" style={{ background: '#fff0f0', border: '1px solid #ffcccc', color: '#cc0000', padding: '8px 12px', borderRadius: '4px' }}>
+            {saveFeedback}
+          </div>
+        ) : null}
+      </div>
+      <footer className="settings-tab-footer">
+        <div />
+        <button className="primary" disabled={isBusy} type="submit">
+          保存设置
+        </button>
+      </footer>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dialog shell — three tabs
 // ---------------------------------------------------------------------------
+
 
 export default function SettingsDialog({
   settings,
@@ -595,6 +764,15 @@ export default function SettingsDialog({
           >
             Skill 管理
           </button>
+          <button
+            aria-selected={activeTab === 'search'}
+            className={`settings-tab-btn ${activeTab === 'search' ? 'active' : ''}`}
+            onClick={() => setActiveTab('search')}
+            role="tab"
+            type="button"
+          >
+            搜索服务
+          </button>
         </div>
 
         {/* Tab panels */}
@@ -608,6 +786,7 @@ export default function SettingsDialog({
         )}
         {activeTab === 'storage' && <StorageTab api={api} />}
         {activeTab === 'skills' && <SkillsTab api={api} />}
+        {activeTab === 'search' && <SearchTab api={api} onClose={onClose} />}
       </div>
     </div>
   );

@@ -16,8 +16,9 @@ import ConversationHistoryCompactor from './context/conversation-history-compact
 import SessionProfileStore from './memory/session-profile-store';
 import buildSystemPromptWithProfile from './memory/profile-prompt';
 
-const baseSystemPrompt = `你是“公众号写作台”，只处理微信公众号文章创作。
-你拥有三个基础工具：read, write, bash。未提供的工具视为不可用。
+const baseSystemPrompt = `你是“公众号写作台”，一个专业的微信公众号文章创作助手。
+你拥有一系列强大的工具（如文件读写 read/write、安全执行命令 bash、技能包管理与运行，以及网页搜索 web_search）。未提供的工具视为不可用。
+当你需要处理的内容、引用的事实、实时热点或任何知识库以外的信息存在不确定性时，你必须首先使用 \`web_search\` 工具进行网页搜索与检验，确保产出内容的真实性和准确性。
 安全策略：bash 工具禁止执行任何危险或破坏性的系统操作（如删除文件、特权切换、重启系统等）。`;
 
 function assistantText(message: AssistantMessage | undefined): string {
@@ -170,7 +171,7 @@ export default class PiAgentRuntime {
           type: 'tool-completed',
           toolName: event.toolName,
           toolCallId: event.toolCallId,
-          isError: event.isError,
+          isError: event.isError || (event.result && typeof event.result === 'object' && event.result.isError === true),
           toolOutput,
         });
       }
