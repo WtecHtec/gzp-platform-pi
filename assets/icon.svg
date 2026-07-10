@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="224" fill="#287458"/>
+  <path d="M300 206H626L754 334V818H300V206Z" fill="#FFFDF7"/>
+  <path d="M626 206V334H754" fill="#E7F1EC"/>
+  <path d="M380 430H644" stroke="#287458" stroke-width="42" stroke-linecap="round"/>
+  <path d="M380 536H644" stroke="#287458" stroke-width="42" stroke-linecap="round"/>
+  <path d="M380 642H560" stroke="#287458" stroke-width="42" stroke-linecap="round"/>
+  <circle cx="298" cy="730" r="110" fill="#1F654C"/>
+  <text x="298" y="770" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="132" font-weight="700" fill="#FFFDF7">写</text>
+</svg>
