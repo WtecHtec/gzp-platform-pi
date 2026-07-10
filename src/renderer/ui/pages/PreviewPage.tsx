@@ -1,19 +1,9 @@
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import type { DesktopApi, WritingSession } from '../../../shared/contracts';
 import Icon from '../components/Icon';
 
 type PreviewMode = 'source' | 'render';
-
-function renderMarkdown(markdown: string) {
-  let cursor = 0;
-  return markdown.split('\n').map((line) => {
-    const key = `${cursor}-${line}`;
-    cursor += line.length + 1;
-    if (line.startsWith('## ')) return <h3 key={key}>{line.slice(3)}</h3>;
-    if (!line.trim()) return <div className="paragraph-gap" key={key} />;
-    return <p key={key}>{line}</p>;
-  });
-}
 
 export default function PreviewPage({
   session,
@@ -88,9 +78,9 @@ export default function PreviewPage({
   return (
     <aside className="preview">
       <header className="preview-header">
-        <div>
+        <div style={{ flexShrink: 0 }}>
           <Icon name="document" size={17} />
-          <strong>预览</strong>
+          {/* <strong>预览</strong> */}
         </div>
         <div className="preview-header-controls">
           {active ? (
@@ -133,6 +123,7 @@ export default function PreviewPage({
             className="preview-close"
             onClick={onClose}
             type="button"
+            style={{ flexShrink: 0 }}
           >
             ×
           </button>
@@ -154,7 +145,7 @@ export default function PreviewPage({
           <article className="article-paper">
             <h2>{fileName}</h2>
             <div className="article-byline">公众号写作台 · Markdown 渲染</div>
-            {renderMarkdown(active.markdown)}
+            <ReactMarkdown>{active.markdown}</ReactMarkdown>
           </article>
         ) : null}
 

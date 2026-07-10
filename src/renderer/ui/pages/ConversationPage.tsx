@@ -7,10 +7,11 @@ import {
 } from '@assistant-ui/react';
 import type { AppendMessage, ThreadMessageLike } from '@assistant-ui/react';
 import ReactMarkdown from 'react-markdown';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type {
   ChatMessage,
   DesktopApi,
+  SkillDescriptor,
   WritingSession,
 } from '../../../shared/contracts';
 import useConversation from '../../hooks/useConversation';
@@ -88,6 +89,23 @@ export default function ConversationPage({
     cancelRun,
   } = useConversation(api, session, onUpdate, onOpenPreview);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [skills, setSkills] = useState<SkillDescriptor[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.settings
+      .listSkills()
+      .then((nextSkills) => {
+        if (!cancelled) setSkills(nextSkills);
+        return undefined;
+      })
+      .catch(() => {
+        if (!cancelled) setSkills([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
 
   /** Append in-progress streamed draft to message list for live display */
   const displayMessages: ChatMessage[] =
@@ -375,6 +393,7 @@ export default function ConversationPage({
             <ThreadPrimitive.ViewportFooter className="assistant-footer">
               <ChatInputArea
                 isThinking={isThinking}
+                skills={skills}
                 onSubmit={submitContent}
                 onCancel={cancelRun}
               />

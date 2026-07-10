@@ -871,7 +871,7 @@ button:disabled {
 
 .preview-header select {
   height: 30px;
-  padding: 0 26px 0 9px;
+  /* padding: 0 26px 0 9px; */
   border: 1px solid var(--border);
   border-radius: 5px;
   color: var(--muted);
@@ -1587,6 +1587,7 @@ button:disabled {
   flex-direction: column;
   gap: 0;
   padding: 0;
+  position: relative;
 }
 
 /* Attachment pills row */
@@ -1667,6 +1668,60 @@ button:disabled {
 
 .chat-input-area .chat-input-textarea::placeholder {
   color: var(--subtle);
+}
+
+.skill-mention-menu {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 44px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  max-height: 216px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 14px 34px rgba(32, 37, 34, 0.14);
+}
+
+.skill-mention-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.skill-mention-option:hover,
+.skill-mention-option.active {
+  background: var(--accent-soft);
+}
+
+.skill-mention-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-mention-id {
+  overflow: hidden;
+  max-width: 180px;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Footer row */

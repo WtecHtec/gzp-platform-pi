@@ -54,7 +54,7 @@ export default function SessionSidebar({
     <aside className="sidebar">
       <div className="brand">
         <span className="brand-mark">写</span>
-        <span>公众号写作台</span>
+        <span>写作台</span>
       </div>
       <button className="new-button" onClick={onCreate} type="button">
         <Icon name="compose" size={16} />
