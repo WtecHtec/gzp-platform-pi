@@ -871,6 +871,7 @@ button:disabled {
 
 .preview-header select {
   height: 30px;
+  width: 120px;
   /* padding: 0 26px 0 9px; */
   border: 1px solid var(--border);
   border-radius: 5px;

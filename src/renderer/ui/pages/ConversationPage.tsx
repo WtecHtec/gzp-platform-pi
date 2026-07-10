@@ -1,7 +1,6 @@
 /* eslint-disable react/no-unstable-nested-components, react/jsx-props-no-spreading, react/no-array-index-key, no-console */
 import {
   AssistantRuntimeProvider,
-  MessagePrimitive,
   ThreadPrimitive,
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
@@ -309,7 +308,7 @@ export default function ConversationPage({
                   (m) => m.id === message.metadata.custom.originalId,
                 );
                 return (
-                  <MessagePrimitive.Root className={`message ${message.role}`}>
+                  <div className={`message ${message.role}`}>
                     <div className="message-role">
                       {message.role === 'user' ? '用户' : '写作助手'}
                     </div>
@@ -374,7 +373,7 @@ export default function ConversationPage({
                         options={lastTopics}
                       />
                     ) : null}
-                  </MessagePrimitive.Root>
+                  </div>
                 );
               }}
             </ThreadPrimitive.Messages>
