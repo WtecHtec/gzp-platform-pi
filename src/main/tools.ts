@@ -185,7 +185,7 @@ export default function createBasicTools(
       });
       return {
         content: [{ type: 'text', text: content }],
-        details: { path: input.path },
+        details: { path: input.path, absolutePath: filePath },
       };
     },
   };
@@ -215,8 +215,8 @@ export default function createBasicTools(
         bytes: Buffer.byteLength(input.content),
       });
       return {
-        content: [{ type: 'text', text: `已写入 ${input.path}` }],
-        details: { path: input.path },
+        content: [{ type: 'text', text: `已写入 ${filePath}` }],
+        details: { path: input.path, absolutePath: filePath },
       };
     },
   };

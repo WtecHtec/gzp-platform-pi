@@ -25,15 +25,18 @@ function formatMarkdownText(
   onPreview: (title: string) => void,
 ): React.ReactNode {
   if (typeof node === 'string') {
-    const parts = node.split(/([a-zA-Z0-9_\u4e00-\u9fa5《》/\-\\.—]+\.md)/g);
+    const parts = node.split(
+      /((?:\/[^\s`"'，。；、（）()<>]+|[A-Za-z]:\\[^\s`"'，。；、（）()<>]+|[A-Za-z0-9_\u4e00-\u9fa5《》()[\]{}.,_—.-]+)\.(?:md|markdown|html|htm))/gi,
+    );
     if (parts.length > 1) {
       return parts.map((part, index) => {
-        if (part.endsWith('.md')) {
+        if (/\.(?:md|markdown|html|htm)$/i.test(part.trim())) {
+          const filePath = part.trim();
           return (
             <button
               key={`${part}-${index}`}
               className="preview-trigger-link"
-              onClick={() => onPreview(part)}
+              onClick={() => onPreview(filePath)}
               type="button"
               style={{
                 background: 'none',
@@ -185,8 +188,10 @@ export default function ConversationPage({
   const customMarkdownComponents = useMemo(
     () => ({
       a: ({ href, children }: any) => {
-        const isMd = href?.endsWith('.md') || href?.includes('.md');
-        if (isMd) {
+        const isPreviewableFile = /\.(?:md|markdown|html|htm)(?:$|[?#])/i.test(
+          href || '',
+        );
+        if (isPreviewableFile) {
           return (
             <button
               onClick={async (e) => {
